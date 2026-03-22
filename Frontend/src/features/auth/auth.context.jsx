@@ -1,32 +1,56 @@
-import { useState } from "react";
-import { createContext } from "react";
+// import { useState } from "react";
+// import { createContext } from "react";
 
-export const AuthContext=createContext();
+// export const AuthContext=createContext();
 
-export const AuthProvider=({children})=>{
+// export const AuthProvider=({children})=>{
     
-    const [user,setUser]=useState(null)
+//     const [user,setUser]=useState(null)
 
-    const [loading,setLoading]=useState(false);
+//     const [loading,setLoading]=useState(false);
+
+//     return (
+//         <AuthContext.Provider value={{user,setUser,loading,setLoading}}>
+//             {children}
+//         </AuthContext.Provider>
+//     )
+// }
+
+
+
+
+// /**
+ 
+//    createContext()  → creates empty pipe
+
+//    AuthProvider     → creates water (data: user, loading)
+
+//    Provider         → pushes water into pipe
+
+//    children         → receive water
+
+//  */
+
+
+import { createContext,useState } from "react";
+
+
+export const AuthContext = createContext()
+
+
+export const AuthProvider = ({ children }) => { 
+
+    const [user, setUser] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    
+
 
     return (
-        <AuthContext.Provider value={{user,setUser,loading,setLoading}}>
+        <AuthContext.Provider value={{user,setUser,loading,setLoading}} >
             {children}
         </AuthContext.Provider>
     )
+
+    
 }
-
-
-
-
-/**
- 
-   createContext()  → creates empty pipe
-
-   AuthProvider     → creates water (data: user, loading)
-
-   Provider         → pushes water into pipe
-
-   children         → receive water
-
- */

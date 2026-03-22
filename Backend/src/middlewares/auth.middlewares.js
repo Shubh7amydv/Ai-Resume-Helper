@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 
+// This middleware will check whether the user is authenticated or not by checking the token in cookies and verifying it
+
 function authUser(req, res, next) {
     const token = req.cookies.token;
 
@@ -37,6 +39,8 @@ function authUser(req, res, next) {
         });
     }
 }
+
+
 
 module.exports={
     authUser
