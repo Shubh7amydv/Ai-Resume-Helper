@@ -1,6 +1,6 @@
 
 import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
-import { useContext, useEffect } from "react"
+import { useContext, useEffect, useState } from "react"
 import { InterviewContext } from "../interview.context"
 import { useParams } from "react-router"
 
@@ -9,6 +9,7 @@ export const useInterview = () => {
 
     const context = useContext(InterviewContext)
     const { interviewId } = useParams()
+    const [ resumeLoading, setResumeLoading ] = useState(false)
 
     if (!context) {
         throw new Error("useInterview must be used within an InterviewProvider")
@@ -60,22 +61,28 @@ export const useInterview = () => {
         return response.interviewReports
     }
 
-    const getResumePdf = async (interviewReportId) => {
-        setLoading(true)
-        let response = null
-        try {
-            response = await generateResumePdf({ interviewReportId })
-            const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
-            const link = document.createElement("a")
-            link.href = url
-            link.setAttribute("download", `resume_${interviewReportId}.pdf`)
-            document.body.appendChild(link)
-            link.click()
+    const getResumePdf = async (interviewReport) => {
+        if (!interviewReport?.jobDescription) {
+            alert("Missing interview report details. Please refresh and try again.")
+            return
         }
-        catch (error) {
+
+        setResumeLoading(true)
+        try {
+            const result = await generateResumePdf({
+                jobDescription: interviewReport.jobDescription,
+                selfDescription: interviewReport.selfDescription || "",
+                resumeText: interviewReport.resume || "",
+            })
+
+            if (result?.fallbackUsed) {
+                alert("Server resume generation is currently unavailable. Downloaded a fallback PDF instead.")
+            }
+        } catch (error) {
             console.log(error)
+            alert(error?.response?.data?.message || "Failed to generate resume PDF. Please try again.")
         } finally {
-            setLoading(false)
+            setResumeLoading(false)
         }
     }
 
@@ -87,6 +94,6 @@ export const useInterview = () => {
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
+    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, resumeLoading }
 
 }

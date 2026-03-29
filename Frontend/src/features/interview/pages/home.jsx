@@ -10,9 +10,44 @@ const Home = () => {
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
     const [ pdfLoading, setPdfLoading ] = useState(false)
+    const [ uploadedResumeName, setUploadedResumeName ] = useState("")
+    const [ uploadStatus, setUploadStatus ] = useState({ type: "", message: "" })
     const resumeInputRef = useRef()
 
     const navigate = useNavigate()
+
+    const handleResumeChange = (e) => {
+        const file = e.target.files?.[0]
+
+        if (!file) {
+            setUploadedResumeName("")
+            setUploadStatus({ type: "", message: "" })
+            return
+        }
+
+        const maxFileSizeInBytes = 5 * 1024 * 1024
+        const allowedTypes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ]
+
+        if (!allowedTypes.includes(file.type)) {
+            e.target.value = ''
+            setUploadedResumeName("")
+            setUploadStatus({ type: 'error', message: 'Unsupported file format. Please upload PDF or DOCX.' })
+            return
+        }
+
+        if (file.size > maxFileSizeInBytes) {
+            e.target.value = ''
+            setUploadedResumeName("")
+            setUploadStatus({ type: 'error', message: 'File is too large. Max size is 5MB.' })
+            return
+        }
+
+        setUploadedResumeName(file.name)
+        setUploadStatus({ type: 'success', message: 'Resume uploaded successfully.' })
+    }
 
     const handleGenerateReport = async () => {
         const resumeFile = resumeInputRef.current.files[ 0 ]
@@ -92,8 +127,28 @@ const Home = () => {
                                 </span>
                                 <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
                                 <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
-                                <input ref={resumeInputRef} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' />
+                                <input
+                                    ref={resumeInputRef}
+                                    hidden
+                                    type='file'
+                                    id='resume'
+                                    name='resume'
+                                    accept='.pdf,.docx'
+                                    onChange={handleResumeChange}
+                                />
                             </label>
+
+                            {uploadStatus.message && (
+                                <p className={`upload-feedback upload-feedback--${uploadStatus.type}`}>
+                                    {uploadStatus.message}
+                                </p>
+                            )}
+
+                            {uploadedResumeName && (
+                                <p className='upload-file-name' title={uploadedResumeName}>
+                                    Selected file: {uploadedResumeName}
+                                </p>
+                            )}
                         </div>
 
                         {/* OR Divider */}
@@ -145,13 +200,6 @@ const Home = () => {
             </div>
 
             {/* Recent Reports List */}
-            {loading && reports.length === 0 && (
-                <section className='recent-reports'>
-                    <h2>My Recent Interview Plans</h2>
-                    <p>Waking up backend from free-plan nap 🥲 Please wait about a minute.</p>
-                </section>
-            )}
-
             {!loading && reports.length > 0 && (
                 <section className='recent-reports'>
                     <h2>My Recent Interview Plans</h2>

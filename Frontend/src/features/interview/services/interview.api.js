@@ -5,6 +5,76 @@ const api = axios.create({
     withCredentials: true,
 })
 
+const downloadArrayBufferPdf = (arrayBuffer, fileName) => {
+    const blob = new Blob([ arrayBuffer ], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+}
+
+const buildFallbackResumePdf = async ({ jobDescription, selfDescription, resumeText }) => {
+    const { jsPDF } = await import('jspdf')
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 42
+    const contentWidth = pageWidth - margin * 2
+    let y = 54
+
+    const ensureSpace = (required = 24) => {
+        if (y + required > pageHeight - margin) {
+            doc.addPage()
+            y = 54
+        }
+    }
+
+    const addHeading = (text) => {
+        ensureSpace(30)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(14)
+        doc.text(text, margin, y)
+        y += 18
+        doc.setDrawColor(220)
+        doc.line(margin, y, pageWidth - margin, y)
+        y += 14
+    }
+
+    const addBody = (text) => {
+        const safeText = (text || 'Not provided').trim() || 'Not provided'
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(11)
+        const lines = doc.splitTextToSize(safeText, contentWidth)
+        lines.forEach((line) => {
+            ensureSpace(16)
+            doc.text(line, margin, y)
+            y += 14
+        })
+        y += 10
+    }
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(18)
+    doc.text('Tailored Resume Draft', margin, y)
+    y += 28
+
+    addHeading('Professional Summary')
+    addBody(selfDescription)
+
+    addHeading('Target Job Description')
+    addBody(jobDescription)
+
+    addHeading('Experience / Resume Highlights')
+    addBody(resumeText)
+
+    doc.save('tailored-resume.pdf')
+}
+
 
 /**
  * @description Service to generate interview report based on user self description, resume and job description.
@@ -49,29 +119,29 @@ export const getAllInterviewReports = async () => {
 /**
  * @description Service to generate a tailored resume PDF based on job description and candidate profile.
  */
-export const generateResumePdf = async ({ jobDescription, selfDescription, resumeFile }) => {
+export const generateResumePdf = async ({ jobDescription, selfDescription, resumeFile, resumeText }) => {
     const formData = new FormData()
     formData.append("jobDescription", jobDescription)
     formData.append("selfDescription", selfDescription)
     if (resumeFile) {
         formData.append("resume", resumeFile)
+    } else if (resumeText) {
+        formData.append("resume", resumeText)
     }
 
-    const response = await api.post("/api/interview/resume-pdf", formData, {
-        headers: {
-            "Content-Type": "multipart/form-data"
-        },
-        responseType: 'arraybuffer'
-    })
+    try {
+        const response = await api.post("/api/interview/resume-pdf", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            },
+            responseType: 'arraybuffer'
+        })
 
-    // Create blob and download
-    const blob = new Blob([response.data], { type: 'application/pdf' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'tailored-resume.pdf'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+        downloadArrayBufferPdf(response.data, 'tailored-resume.pdf')
+        return { fallbackUsed: false }
+    } catch (error) {
+        console.error('Server PDF generation failed, using browser fallback PDF:', error)
+        await buildFallbackResumePdf({ jobDescription, selfDescription, resumeText })
+        return { fallbackUsed: true }
+    }
 }

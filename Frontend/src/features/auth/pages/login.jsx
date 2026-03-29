@@ -29,11 +29,10 @@ const Login = () => {
         }
     }, [user, navigate])
 
-    if(loading){
+    if (loading) {
         return (
-            <main>
-                <h1>Loading.......</h1>
-                <p>Waking up backend from free-plan nap 🥲 Please wait about a minute.</p>
+            <main style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+                <h1>Loading.........</h1>
             </main>
         )
     }
